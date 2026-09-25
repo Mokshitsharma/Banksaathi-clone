@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../db/prisma';
-import { notFound } from '../../lib/errors';
+import { badRequest, notFound } from '../../lib/errors';
 import { pagination, parse, rupeesToPaise } from '../../lib/http';
 import { requireAuth, requireRole } from '../../middleware/auth';
 import { approveCommission, rejectCommission } from '../commissions/commission.service';
@@ -154,6 +154,17 @@ adminRouter.post('/kyc/:userId/reject', async (req, res) => {
 });
 
 // ---------- Commission rules ----------
+/** Offer copy shown to affiliates. Empty strings clear the field. */
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .transform((v) => v || null)
+    .nullable()
+    .optional();
+const offerCopy = { title: optionalText(80), description: optionalText(500) };
+
 const ruleInput = z
   .object({
     productType,
@@ -162,6 +173,7 @@ const ruleInput = z
     value: z.coerce.number().positive(),
     tier: z.coerce.number().int().min(1).max(10).default(1),
     active: z.boolean().default(true),
+    ...offerCopy,
   })
   .transform((r) => ({ ...r, value: Math.round(r.value * 100) }))
   .refine((r) => r.commissionType === 'flat' || r.value <= 10_000, { message: 'Percentage cannot exceed 100%', path: ['value'] });
@@ -181,10 +193,18 @@ adminRouter.patch('/commission-rules/:id', async (req, res) => {
       value: z.coerce.number().positive().transform((v) => Math.round(v * 100)).optional(),
       tier: z.coerce.number().int().min(1).max(10).optional(),
       active: z.boolean().optional(),
+      ...offerCopy,
     }),
     req.body,
   );
-  res.json(await prisma.commissionRule.update({ where: { id: parse(uuid, req.params.id) }, data: partial }));
+  const id = parse(uuid, req.params.id);
+  if (partial.commissionType === 'percent' || (partial.value !== undefined && !partial.commissionType)) {
+    const current = await prisma.commissionRule.findUnique({ where: { id }, select: { commissionType: true, value: true } });
+    if (!current) throw notFound('Rule not found');
+    const type = partial.commissionType ?? current.commissionType;
+    if (type === 'percent' && (partial.value ?? current.value) > 10_000) throw badRequest('Percentage cannot exceed 100%');
+  }
+  res.json(await prisma.commissionRule.update({ where: { id }, data: partial }));
 });
 
 adminRouter.delete('/commission-rules/:id', async (req, res) => {

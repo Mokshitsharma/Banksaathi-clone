@@ -68,9 +68,13 @@ td.empty { text-align: center; color: var(--muted); padding: 32px; }
 .btn-ghost.danger { color: var(--danger); }
 .btn:focus-visible, input:focus-visible, select:focus-visible, .tab:focus-visible, .nav-link:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
-input, select { font: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text); }
+input, select, textarea { font: inherit; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: #fff; color: var(--text); }
 label { display: grid; gap: 6px; font-weight: 600; font-size: 13px; margin-bottom: 12px; }
-label input, label select { font-weight: 400; }
+label input, label select, label textarea { font-weight: 400; }
+textarea { resize: vertical; }
+.rule-form { margin-bottom: 16px; }
+.rule-form .form-row { margin-bottom: 12px; }
+.clamp-2 { max-width: 360px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .search { min-width: 240px; }
 
 .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; text-transform: capitalize; }

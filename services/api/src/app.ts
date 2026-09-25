@@ -10,6 +10,7 @@ import { earningsRouter } from './modules/commissions/earnings.routes';
 import { fileRouter } from './modules/files/file.routes';
 import { kycRouter } from './modules/kyc/kyc.routes';
 import { leadRouter } from './modules/leads/lead.routes';
+import { offerRouter } from './modules/offers/offer.routes';
 import { referralRouter } from './modules/referrals/referral.routes';
 import { userRouter } from './modules/users/user.routes';
 
@@ -29,6 +30,7 @@ export function createApp() {
   app.use('/referrals', referralRouter);
   app.use('/leads', leadRouter);
   app.use('/earnings', earningsRouter);
+  app.use('/offers', offerRouter);
   app.use('/kyc', kycRouter);
   app.use('/admin', adminRouter);
   app.use('/files', fileRouter);

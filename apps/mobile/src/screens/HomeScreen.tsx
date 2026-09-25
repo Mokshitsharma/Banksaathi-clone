@@ -1,21 +1,27 @@
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { CompositeScreenProps } from '@react-navigation/native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Earnings, Leads } from '../api/endpoints';
+import { Earnings, Leads, Offers } from '../api/endpoints';
+import { OfferCard } from '../components/OfferCard';
 import { KYC_LABEL, kycTone, leadTone } from '../components/status';
 import { Badge, Button, Card, ErrorBanner } from '../components/ui';
 import { useFocusData } from '../hooks/useAsync';
-import type { MainTabParams } from '../navigation/types';
+import type { HomeStackParams, MainTabParams } from '../navigation/types';
 import { useAuth } from '../store/auth';
 import { colors, font, radius, spacing } from '../theme';
 import { LEAD_STATUS_LABEL, money } from '../utils/format';
 import type { LeadStatus } from '@refera/shared-types';
+import { isTeamBonus } from '../utils/offers';
 
-export function HomeScreen({ navigation }: BottomTabScreenProps<MainTabParams, 'Home'>) {
+type Props = CompositeScreenProps<NativeStackScreenProps<HomeStackParams, 'HomeMain'>, BottomTabScreenProps<MainTabParams>>;
+
+export function HomeScreen({ navigation }: Props) {
   const user = useAuth((s) => s.user);
   const { data, error, refreshing, reload } = useFocusData(async () => {
-    const [summary, stats] = await Promise.all([Earnings.summary(), Leads.stats()]);
-    return { summary, stats };
+    const [summary, stats, offers] = await Promise.all([Earnings.summary(), Leads.stats(), Offers.list()]);
+    return { summary, stats, offers };
   });
 
   return (
@@ -52,6 +58,27 @@ export function HomeScreen({ navigation }: BottomTabScreenProps<MainTabParams, '
           </Pressable>
         )}
 
+        {data && data.offers.length > 0 && (
+          <View style={{ marginBottom: spacing.xl }}>
+            <View style={styles.sectionHeader}>
+              <Text style={font.h3}>Earn with Refera</Text>
+              <Pressable onPress={() => navigation.navigate('Offers')} hitSlop={8}>
+                <Text style={styles.link}>See all {data.offers.length} offers</Text>
+              </Pressable>
+            </View>
+            <View style={{ gap: spacing.sm }}>
+              {data.offers
+                .filter((o) => !isTeamBonus(o))
+                .slice(0, 2)
+                .map((o) => (
+                  <Pressable key={o.id} onPress={() => navigation.navigate('Offers')}>
+                    <OfferCard offer={o} compact />
+                  </Pressable>
+                ))}
+            </View>
+          </View>
+        )}
+
         <Text style={[font.h3, { marginBottom: spacing.md }]}>Your leads</Text>
         <View style={styles.grid}>
           {(Object.keys(LEAD_STATUS_LABEL) as LeadStatus[]).map((s) => (
@@ -63,7 +90,7 @@ export function HomeScreen({ navigation }: BottomTabScreenProps<MainTabParams, '
         </View>
 
         <View style={{ flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg }}>
-          <Button title="Add a lead" style={{ flex: 1 }} onPress={() => navigation.navigate('LeadsTab', { screen: 'NewLead' } as never)} />
+          <Button title="Add a lead" style={{ flex: 1 }} onPress={() => navigation.navigate('LeadsTab', { screen: 'NewLead' })} />
           <Button title="Share link" variant="secondary" style={{ flex: 1 }} onPress={() => navigation.navigate('Referrals')} />
         </View>
       </ScrollView>
@@ -79,4 +106,6 @@ const styles = StyleSheet.create({
   heroValue: { color: '#fff', fontSize: 16, fontWeight: '600', marginTop: 2 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   statCard: { width: '30%', flexGrow: 1, gap: spacing.sm, padding: spacing.md },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
+  link: { color: colors.primary, fontWeight: '600' },
 });

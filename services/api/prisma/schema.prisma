@@ -184,6 +184,9 @@ model CommissionRule {
   // 1 = direct referrer, 2 = their upline, and so on.
   tier           Int            @default(1)
   active         Boolean        @default(true)
+  // Affiliate-facing offer copy shown in the mobile app.
+  title          String?
+  description    String?
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
   commissions    Commission[]

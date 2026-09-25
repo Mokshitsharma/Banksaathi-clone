@@ -73,6 +73,39 @@ describe('OTP auth', () => {
   });
 });
 
+describe('offers', () => {
+  it('shows active rules with their offer copy to affiliates', async () => {
+    const u = await login('9876544444');
+    const created = await request(app)
+      .post('/admin/commission-rules')
+      .set(auth(adminToken))
+      .send({ productType: 'insurance', commissionType: 'flat', value: 999, tier: 1, title: '  Insurance bonus  ', description: 'Earn on every policy' })
+      .expect(201);
+    expect(created.body.title).toBe('Insurance bonus');
+
+    const offers = await request(app).get('/offers').set(auth(u.token)).expect(200);
+    const offer = offers.body.find((o: { id: string }) => o.id === created.body.id);
+    expect(offer).toMatchObject({ title: 'Insurance bonus', description: 'Earn on every policy', value: 99900, commissionType: 'flat' });
+
+    // Empty string clears copy; paused rules disappear from offers.
+    await request(app).patch(`/admin/commission-rules/${created.body.id}`).set(auth(adminToken)).send({ description: '' }).expect(200);
+    const cleared = await request(app).get('/offers').set(auth(u.token)).expect(200);
+    expect(cleared.body.find((o: { id: string }) => o.id === created.body.id).description).toBeNull();
+
+    await request(app).patch(`/admin/commission-rules/${created.body.id}`).set(auth(adminToken)).send({ active: false }).expect(200);
+    const after = await request(app).get('/offers').set(auth(u.token)).expect(200);
+    expect(after.body.some((o: { id: string }) => o.id === created.body.id)).toBe(false);
+
+    await request(app).get('/offers').expect(401);
+  });
+
+  it('rejects a percent rule edited above 100%', async () => {
+    const rules = await request(app).get('/admin/commission-rules').set(auth(adminToken)).expect(200);
+    const percent = rules.body.find((r: { commissionType: string }) => r.commissionType === 'percent');
+    await request(app).patch(`/admin/commission-rules/${percent.id}`).set(auth(adminToken)).send({ value: 150 }).expect(400);
+  });
+});
+
 describe('referral → lead → commission → ledger → payout', () => {
   it('runs the whole money flow end to end', async () => {
     // Upline (tier 2) invites the referrer (tier 1)

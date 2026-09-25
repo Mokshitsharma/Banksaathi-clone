@@ -74,8 +74,14 @@ export interface CommissionRule {
   value: number;
   tier: number;
   active: boolean;
+  /** Affiliate-facing offer copy; null falls back to a generated title. */
+  title: string | null;
+  description: string | null;
   createdAt: string;
 }
+
+/** An active commission rule as affiliates see it (GET /offers). */
+export type Offer = Pick<CommissionRule, 'id' | 'productType' | 'commissionType' | 'value' | 'tier' | 'title' | 'description'>;
 
 export interface Commission {
   id: string;

@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import type { ProductType } from '@refera/shared-types';
 import { errorMessage } from '../../api/client';
@@ -9,14 +9,20 @@ import type { LeadsStackParams } from '../../navigation/types';
 import { colors, font, spacing } from '../../theme';
 import { PRODUCT_LABEL } from '../../utils/format';
 
-export function NewLeadScreen({ navigation }: NativeStackScreenProps<LeadsStackParams, 'NewLead'>) {
-  const [productType, setProductType] = useState<ProductType>('loan');
+export function NewLeadScreen({ navigation, route }: NativeStackScreenProps<LeadsStackParams, 'NewLead'>) {
+  const [productType, setProductType] = useState<ProductType>(route.params?.productType ?? 'loan');
   const [leadName, setLeadName] = useState('');
   const [leadPhone, setLeadPhone] = useState('');
   const [dealAmount, setDealAmount] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Opening from an offer card while this screen is already mounted should still switch product.
+  const requestedProduct = route.params?.productType;
+  useEffect(() => {
+    if (requestedProduct) setProductType(requestedProduct);
+  }, [requestedProduct]);
 
   const valid = leadName.trim().length >= 2 && /^[6-9]\d{9}$/.test(leadPhone);
 

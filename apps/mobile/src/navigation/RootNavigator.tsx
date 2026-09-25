@@ -8,6 +8,7 @@ import { OtpScreen } from '../screens/auth/OtpScreen';
 import { PhoneScreen } from '../screens/auth/PhoneScreen';
 import { EarningsScreen } from '../screens/EarningsScreen';
 import { HomeScreen } from '../screens/HomeScreen';
+import { OffersScreen } from '../screens/OffersScreen';
 import { LeadDetailScreen } from '../screens/leads/LeadDetailScreen';
 import { LeadsScreen } from '../screens/leads/LeadsScreen';
 import { NewLeadScreen } from '../screens/leads/NewLeadScreen';
@@ -17,14 +18,24 @@ import { ReferralsScreen } from '../screens/ReferralsScreen';
 import { Loading } from '../components/ui';
 import { useAuth } from '../store/auth';
 import { colors } from '../theme';
-import type { AuthStackParams, LeadsStackParams, MainTabParams, ProfileStackParams } from './types';
+import type { AuthStackParams, HomeStackParams, LeadsStackParams, MainTabParams, ProfileStackParams } from './types';
 
 const AuthStack = createNativeStackNavigator<AuthStackParams>();
 const Tabs = createBottomTabNavigator<MainTabParams>();
+const HomeStack = createNativeStackNavigator<HomeStackParams>();
 const LeadsStack = createNativeStackNavigator<LeadsStackParams>();
 const ProfileStack = createNativeStackNavigator<ProfileStackParams>();
 
 const theme = { ...DefaultTheme, colors: { ...DefaultTheme.colors, primary: colors.primary, background: colors.bg } };
+
+function HomeNavigator() {
+  return (
+    <HomeStack.Navigator>
+      <HomeStack.Screen name="HomeMain" component={HomeScreen} options={{ headerShown: false }} />
+      <HomeStack.Screen name="Offers" component={OffersScreen} options={{ title: 'Offers' }} />
+    </HomeStack.Navigator>
+  );
+}
 
 function LeadsNavigator() {
   return (
@@ -67,7 +78,7 @@ function MainTabs() {
         tabBarIcon: ({ color, size }) => <Ionicons name={TAB_ICON[route.name]} color={color} size={size} />,
       })}
     >
-      <Tabs.Screen name="Home" component={HomeScreen} />
+      <Tabs.Screen name="Home" component={HomeNavigator} />
       <Tabs.Screen name="Referrals" component={ReferralsScreen} options={{ title: 'Refer' }} />
       <Tabs.Screen name="LeadsTab" component={LeadsNavigator} options={{ title: 'Leads' }} />
       <Tabs.Screen name="Earnings" component={EarningsScreen} />

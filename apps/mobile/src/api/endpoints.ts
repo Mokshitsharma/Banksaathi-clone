@@ -8,6 +8,7 @@ import type {
   Lead,
   LeadStatus,
   LedgerEntry,
+  Offer,
   Paginated,
   Payout,
   ProductType,
@@ -48,6 +49,10 @@ export const Leads = {
   get: (id: string) => api.get<LeadDetail>(`/leads/${id}`).then((r) => r.data),
   create: (body: { productType: ProductType; leadName: string; leadPhone: string; notes?: string; dealAmount?: number }) =>
     api.post<Lead>('/leads', body).then((r) => r.data),
+};
+
+export const Offers = {
+  list: () => api.get<Offer[]>('/offers').then((r) => r.data),
 };
 
 export const Earnings = {

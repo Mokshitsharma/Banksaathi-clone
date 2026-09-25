@@ -43,6 +43,10 @@ The pipeline is `new → contacted → in_progress → converted`. `rejected` ca
 | GET | `/earnings/payouts` | |
 | POST | `/earnings/payouts` | `{ amount }` in rupees. Requires verified KYC; debits the ledger. |
 
+## Offers
+| GET | `/offers` | Active commission rules for affiliates: `id, productType, commissionType, value, tier, title, description`. `value` is paise for flat rules and basis points for percent rules. Tier 2 and above are team bonuses. |
+|---|---|---|
+
 ## KYC
 | GET | `/kyc` | Status, check flags, masked PAN and bank details, documents with signed URLs |
 |---|---|---|
@@ -62,7 +66,7 @@ which resets the checks).
 | PATCH | `/admin/leads/:id/status` `{ status, dealAmount?, notes? }`: converting creates commissions |
 | GET | `/admin/kyc?status=pending` · `/admin/kyc/:userId` |
 | POST | `/admin/kyc/:userId/approve` · `/admin/kyc/:userId/reject` `{ reason }` |
-| GET/POST | `/admin/commission-rules` `{ productType, commissionType: flat\|percent, value, tier, active? }`: value is ₹ for flat rules, % for percent rules |
+| GET/POST | `/admin/commission-rules` `{ productType, commissionType: flat\|percent, value, tier, active?, title?, description? }`: value is ₹ for flat rules, % for percent rules. Title (max 80) and description (max 500) are the offer copy; an empty string clears them. |
 | PATCH/DELETE | `/admin/commission-rules/:id` |
 | GET | `/admin/commissions?status=` |
 | POST | `/admin/commissions/:id/approve` (credits the ledger) · `/admin/commissions/:id/reject` |

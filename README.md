@@ -84,6 +84,8 @@ All configuration lives in `.env`. See `.env.example` for every variable, with c
 account numbers are encrypted with AES-256-GCM (`DATA_ENCRYPTION_KEY`), and only masked values are ever returned.
 
 ## Mobile app (`apps/mobile`)
+- Home shows an **Offers** preview, and **See all** opens the Offers screen. Each active commission rule is a card with its title,
+  amount and description. Direct offers open "New lead" with that product selected; team bonuses link to the Refer tab.
 - Tabs: Home, Refer (code, share sheet, team downline), Leads (list, filters, detail, new lead), Earnings (balance,
   withdraw, history, commissions, payouts), Profile (edit profile, KYC flow with document upload).
 - The session token is stored in `expo-secure-store`.
@@ -93,7 +95,7 @@ account numbers are encrypted with AES-256-GCM (`DATA_ENCRYPTION_KEY`), and only
 ## Admin panel (`services/admin-dashboard`)
 Overview analytics, lead queue (move through the pipeline and convert with a deal amount), KYC review (checks,
 documents, approve or reject), commission approval, payouts (process, mark paid with a UTR, or fail with automatic
-reversal), commission rule management and an affiliate directory.
+reversal), commission rules with an offer title and description (edit any rule's copy) and an affiliate directory.
 
 ## Still to decide
 - KYC provider (Digio, Karza/Perfios, Signzy or HyperVerge): implement the `KycProvider` interface.

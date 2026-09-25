@@ -16,18 +16,49 @@ async function main() {
   });
   console.log(`Admin: ${admin.email} / ${password}`);
 
+  // flat values in paise, percent values in basis points
+  const defaults = [
+    {
+      productType: 'credit_card', commissionType: 'flat', value: 150000, tier: 1, // ₹1,500
+      title: 'Refer a credit card, earn ₹1,500',
+      description: 'Earn a flat ₹1,500 for every friend who gets a credit card approved and issued through your referral.',
+    },
+    {
+      productType: 'credit_card', commissionType: 'flat', value: 20000, tier: 2, // ₹200
+      title: 'Team bonus on credit cards',
+      description: 'Earn ₹200 whenever someone you invited converts a credit card lead.',
+    },
+    {
+      productType: 'loan', commissionType: 'percent', value: 100, tier: 1, // 1% of disbursal
+      title: 'Personal & business loans: 1% payout',
+      description: 'Earn 1% of the disbursed loan amount. A ₹5 lakh loan pays you ₹5,000.',
+    },
+    {
+      productType: 'loan', commissionType: 'percent', value: 10, tier: 2, // 0.1%
+      title: 'Team bonus on loans',
+      description: 'Earn 0.1% of the loan amount whenever someone in your team gets a loan disbursed.',
+    },
+    {
+      productType: 'insurance', commissionType: 'percent', value: 1000, tier: 1, // 10% of premium
+      title: 'Insurance: 10% of first-year premium',
+      description: 'Health, life or motor. Earn 10% of the first-year premium when the policy is issued.',
+    },
+  ] as const;
+
   if ((await prisma.commissionRule.count()) === 0) {
-    // flat values in paise, percent values in basis points
-    await prisma.commissionRule.createMany({
-      data: [
-        { productType: 'credit_card', commissionType: 'flat', value: 150000, tier: 1 }, // ₹1,500
-        { productType: 'credit_card', commissionType: 'flat', value: 20000, tier: 2 }, //  ₹200
-        { productType: 'loan', commissionType: 'percent', value: 100, tier: 1 }, //        1% of disbursal
-        { productType: 'loan', commissionType: 'percent', value: 10, tier: 2 }, //         0.1%
-        { productType: 'insurance', commissionType: 'percent', value: 1000, tier: 1 }, //  10% of premium
-      ],
-    });
+    await prisma.commissionRule.createMany({ data: defaults.map((d) => ({ ...d })) });
     console.log('Seeded default commission rules');
+  } else {
+    // Give untitled rules that match a default the default offer copy. Rules an admin already titled are left alone.
+    let filled = 0;
+    for (const d of defaults) {
+      const { count } = await prisma.commissionRule.updateMany({
+        where: { productType: d.productType, commissionType: d.commissionType, value: d.value, tier: d.tier, title: null },
+        data: { title: d.title, description: d.description },
+      });
+      filled += count;
+    }
+    if (filled) console.log(`Added offer copy to ${filled} existing rule(s)`);
   }
 }
 
