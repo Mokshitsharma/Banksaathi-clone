@@ -1,0 +1,9 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@refera/shared-types": ["../../packages/shared-types/src/index.ts"]
+    }
+  }
+}

@@ -1,0 +1,260 @@
+// Refera data model. Money is stored as integer paise to avoid floating-point errors.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  affiliate
+  admin
+}
+
+enum KycStatus {
+  unverified
+  pending
+  verified
+  rejected
+}
+
+enum ProductType {
+  loan
+  credit_card
+  insurance
+}
+
+enum LeadStatus {
+  new
+  contacted
+  in_progress
+  converted
+  rejected
+}
+
+enum CommissionType {
+  flat
+  percent
+}
+
+enum CommissionStatus {
+  pending
+  approved
+  paid
+  rejected
+}
+
+enum PayoutStatus {
+  pending
+  processing
+  completed
+  failed
+}
+
+enum LedgerType {
+  commission_credit
+  payout_debit
+  payout_reversal
+}
+
+enum KycDocumentType {
+  pan_card
+  bank_proof
+  other
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  phone        String    @unique
+  email        String?   @unique
+  name         String?
+  role         Role      @default(affiliate)
+  passwordHash String?   @map("password_hash") // admins only
+  referredById String?   @map("referred_by") @db.Uuid
+  referredBy   User?     @relation("Referrals", fields: [referredById], references: [id])
+  referrals    User[]    @relation("Referrals")
+  kycStatus    KycStatus @default(unverified) @map("kyc_status")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  referralLink  ReferralLink?
+  kycRecord     KycRecord?
+  kycDocuments  KycDocument[]
+  leads         Lead[]
+  commissions   Commission[]
+  payouts       Payout[]
+  ledgerEntries LedgerEntry[]
+  deviceTokens  DeviceToken[]
+
+  @@index([referredById])
+  @@map("users")
+}
+
+model OtpCode {
+  id        String   @id @default(uuid()) @db.Uuid
+  phone     String
+  codeHash  String   @map("code_hash")
+  expiresAt DateTime @map("expires_at")
+  attempts  Int      @default(0)
+  consumed  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([phone, createdAt])
+  @@map("otp_codes")
+}
+
+model KycRecord {
+  id                   String    @id @default(uuid()) @db.Uuid
+  userId               String    @unique @map("user_id") @db.Uuid
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aadhaarVerified      Boolean   @default(false) @map("aadhaar_verified")
+  panVerified          Boolean   @default(false) @map("pan_verified")
+  bankVerified         Boolean   @default(false) @map("bank_verified")
+  // Never store raw Aadhaar numbers — only the provider's verification reference.
+  aadhaarRefId         String?   @map("aadhaar_ref_id")
+  aadhaarPendingRefId  String?   @map("aadhaar_pending_ref_id")
+  panNumberEncrypted   String?   @map("pan_number_encrypted")
+  panMasked            String?   @map("pan_masked")
+  bankAccountEncrypted String?   @map("bank_account_encrypted")
+  bankAccountMasked    String?   @map("bank_account_masked")
+  bankIfsc             String?   @map("bank_ifsc")
+  nameAsPerKyc         String?   @map("name_as_per_kyc")
+  verificationProvider String?   @map("verification_provider")
+  rejectionReason      String?   @map("rejection_reason")
+  verifiedAt           DateTime? @map("verified_at")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  @@map("kyc_records")
+}
+
+model KycDocument {
+  id         String          @id @default(uuid()) @db.Uuid
+  userId     String          @map("user_id") @db.Uuid
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       KycDocumentType
+  storageKey String          @map("storage_key")
+  fileName   String          @map("file_name")
+  mimeType   String          @map("mime_type")
+  sizeBytes  Int             @map("size_bytes")
+  createdAt  DateTime        @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("kyc_documents")
+}
+
+model ReferralLink {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @unique @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("referral_links")
+}
+
+model Lead {
+  id               String       @id @default(uuid()) @db.Uuid
+  referredByUserId String       @map("referred_by_user_id") @db.Uuid
+  referredBy       User         @relation(fields: [referredByUserId], references: [id])
+  productType      ProductType  @map("product_type")
+  leadName         String       @map("lead_name")
+  leadPhone        String       @map("lead_phone")
+  status           LeadStatus   @default(new)
+  dealAmountPaise  Int?         @map("deal_amount_paise")
+  notes            String?
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+  commissions      Commission[]
+
+  @@index([referredByUserId, status])
+  @@index([status])
+  @@map("leads")
+}
+
+model CommissionRule {
+  id             String         @id @default(uuid()) @db.Uuid
+  productType    ProductType    @map("product_type")
+  commissionType CommissionType @map("commission_type")
+  // flat: paise. percent: basis points (100 = 1%).
+  value          Int
+  // 1 = direct referrer, 2 = their upline, and so on.
+  tier           Int            @default(1)
+  active         Boolean        @default(true)
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  commissions    Commission[]
+
+  @@index([productType, active])
+  @@map("commission_rules")
+}
+
+model Commission {
+  id          String           @id @default(uuid()) @db.Uuid
+  leadId      String           @map("lead_id") @db.Uuid
+  lead        Lead             @relation(fields: [leadId], references: [id])
+  userId      String           @map("user_id") @db.Uuid
+  user        User             @relation(fields: [userId], references: [id])
+  ruleId      String?          @map("rule_id") @db.Uuid
+  rule        CommissionRule?  @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  tier        Int              @default(1)
+  amountPaise Int              @map("amount_paise")
+  status      CommissionStatus @default(pending)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  @@unique([leadId, userId, tier])
+  @@index([userId, status])
+  @@map("commissions")
+}
+
+model Payout {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  user           User         @relation(fields: [userId], references: [id])
+  amountPaise    Int          @map("amount_paise")
+  status         PayoutStatus @default(pending)
+  payoutMethod   String       @default("bank_transfer") @map("payout_method")
+  transactionRef String?      @map("transaction_ref")
+  failureReason  String?      @map("failure_reason")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@index([userId, status])
+  @@index([status])
+  @@map("payouts")
+}
+
+// Immutable: rows are only ever inserted. A database trigger rejects UPDATE/DELETE.
+model LedgerEntry {
+  id                String     @id @default(uuid()) @db.Uuid
+  userId            String     @map("user_id") @db.Uuid
+  user              User       @relation(fields: [userId], references: [id])
+  type              LedgerType
+  // Signed: credits positive, debits negative.
+  amountPaise       Int        @map("amount_paise")
+  balanceAfterPaise Int        @map("balance_after_paise")
+  referenceId       String     @map("reference_id") @db.Uuid
+  description       String?
+  createdAt         DateTime   @default(now()) @map("created_at")
+
+  @@unique([type, referenceId])
+  @@index([userId, createdAt])
+  @@map("ledger_entries")
+}
+
+model DeviceToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  platform  String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@map("device_tokens")
+}

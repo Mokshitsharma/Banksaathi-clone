@@ -1,0 +1,8 @@
+{
+  "name": "@refera/shared-types",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Type-only contracts shared by the API, mobile app and admin dashboard. Import with `import type` so bundlers never need to resolve this package at runtime.",
+  "types": "src/index.ts",
+  "main": "src/index.ts"
+}
