@@ -112,7 +112,8 @@ export function LeadsPage() {
 }
 
 function ConvertDialog({ lead, busy, onCancel, onConfirm }: { lead: Lead; busy: boolean; onCancel: () => void; onConfirm: (x: { dealAmount?: number; notes?: string }) => void }) {
-  const [amount, setAmount] = useState(lead.dealAmountPaise != null ? String(lead.dealAmountPaise / 100) : '');
+  // Deliberately not prefilled: commissions must be based on the confirmed amount, not the affiliate's estimate.
+  const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
   return (
     <div className="modal-backdrop" onClick={onCancel}>
@@ -129,6 +130,7 @@ function ConvertDialog({ lead, busy, onCancel, onConfirm }: { lead: Lead; busy: 
         <label>
           Final deal amount (₹) — loan disbursed / card limit / premium
           <input type="number" min="1" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Required for % rules" />
+          {lead.dealAmountPaise != null && <span className="muted small">Affiliate's estimate: {money(lead.dealAmountPaise)}. Enter the amount actually approved.</span>}
         </label>
         <label>
           Notes

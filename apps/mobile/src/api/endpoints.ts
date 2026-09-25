@@ -28,6 +28,8 @@ export const Auth = {
     api.post<AuthResponse>('/auth/otp/verify', body).then((r) => r.data),
   checkReferralCode: (code: string) =>
     api.get<{ code: string; referrerName: string | null }>(`/referrals/code/${encodeURIComponent(code)}`).then((r) => r.data),
+  /** Revokes every session for this account on the server. */
+  logout: () => api.post('/auth/logout'),
 };
 
 export const Me = {

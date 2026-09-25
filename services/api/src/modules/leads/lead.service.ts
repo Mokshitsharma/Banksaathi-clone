@@ -48,7 +48,8 @@ export async function updateLeadStatus(
     });
     if (count === 0) throw badRequest('Lead was updated by someone else. Refresh and try again.');
     const updated = await tx.lead.findUniqueOrThrow({ where: { id: leadId } });
-    const commissions = input.status === 'converted' ? await createCommissionsForLead(tx, updated) : [];
+    const commissions =
+      input.status === 'converted' ? await createCommissionsForLead(tx, updated, input.dealAmountPaise ?? null) : [];
     return { lead: updated, commissions };
   });
 

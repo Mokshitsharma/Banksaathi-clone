@@ -10,6 +10,7 @@ services/api              Express 5 + Prisma 6 + PostgreSQL backend
 services/admin-dashboard  React + Vite admin panel
 packages/shared-types     Type-only API contracts shared by all three
 docs/api-spec.md          Endpoint reference
+docs/brain/               Project brain: PRD, TRD, workflows, architecture, security (start at 00-README.md)
 scripts/                  Local PostgreSQL start/stop helpers
 ```
 

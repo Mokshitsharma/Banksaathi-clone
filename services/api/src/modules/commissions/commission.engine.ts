@@ -13,16 +13,23 @@ export function calculateAmount(rule: Pick<CommissionRule, 'commissionType' | 'v
 /**
  * Creates pending commissions for a freshly converted lead. Tier 1 goes to the direct
  * referrer, tier 2 to their upline, and so on — one commission per matching active rule.
+ *
+ * confirmedDealAmountPaise must come from the admin converting the lead. The affiliate's own
+ * estimate on the lead is deliberately NOT used, so an affiliate can't inflate percentage payouts.
  */
-export async function createCommissionsForLead(tx: Tx, lead: Pick<Lead, 'id' | 'productType' | 'referredByUserId' | 'dealAmountPaise'>) {
+export async function createCommissionsForLead(
+  tx: Tx,
+  lead: Pick<Lead, 'id' | 'productType' | 'referredByUserId'>,
+  confirmedDealAmountPaise: number | null,
+) {
   const rules = await tx.commissionRule.findMany({
     where: { productType: lead.productType, active: true },
     orderBy: { tier: 'asc' },
   });
   if (rules.length === 0) return [];
 
-  if (lead.dealAmountPaise == null && rules.some((r) => r.commissionType === 'percent')) {
-    throw badRequest('dealAmount is required to convert this lead because a percentage commission rule applies');
+  if (confirmedDealAmountPaise == null && rules.some((r) => r.commissionType === 'percent')) {
+    throw badRequest('Enter the final deal amount to convert this lead (a percentage commission rule applies)');
   }
 
   const maxTier = Math.max(...rules.map((r) => r.tier));
@@ -31,7 +38,7 @@ export async function createCommissionsForLead(tx: Tx, lead: Pick<Lead, 'id' | '
   const created = [];
   for (const rule of rules) {
     const beneficiary = chain[rule.tier - 1];
-    const amount = calculateAmount(rule, lead.dealAmountPaise);
+    const amount = calculateAmount(rule, confirmedDealAmountPaise);
     if (!beneficiary || !amount || amount <= 0) continue;
     created.push(
       await tx.commission.upsert({

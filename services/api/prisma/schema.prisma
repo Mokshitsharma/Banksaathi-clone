@@ -77,6 +77,8 @@ model User {
   referredBy   User?     @relation("Referrals", fields: [referredById], references: [id])
   referrals    User[]    @relation("Referrals")
   kycStatus    KycStatus @default(unverified) @map("kyc_status")
+  // Embedded in every JWT; incrementing it (POST /auth/logout) revokes all of the user's sessions.
+  tokenVersion Int       @default(0) @map("token_version")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
@@ -116,6 +118,8 @@ model KycRecord {
   // Never store raw Aadhaar numbers — only the provider's verification reference.
   aadhaarRefId         String?   @map("aadhaar_ref_id")
   aadhaarPendingRefId  String?   @map("aadhaar_pending_ref_id")
+  // Wrong guesses against the pending Aadhaar OTP; reset when a new OTP is requested.
+  aadhaarOtpAttempts   Int       @default(0) @map("aadhaar_otp_attempts")
   panNumberEncrypted   String?   @map("pan_number_encrypted")
   panMasked            String?   @map("pan_masked")
   bankAccountEncrypted String?   @map("bank_account_encrypted")

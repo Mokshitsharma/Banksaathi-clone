@@ -3,11 +3,17 @@ import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
+const DEV_DEFAULT_PASSWORD = 'Admin@12345';
 
 async function main() {
   const email = (process.env.SEED_ADMIN_EMAIL ?? 'admin@refera.app').toLowerCase();
-  const password = process.env.SEED_ADMIN_PASSWORD ?? 'Admin@12345';
+  const password = process.env.SEED_ADMIN_PASSWORD ?? DEV_DEFAULT_PASSWORD;
   const phone = process.env.SEED_ADMIN_PHONE ?? '+919999999999';
+
+  // The dev default password is public (README, .env.example). Never let it reach a real deployment.
+  if (process.env.NODE_ENV === 'production' && (password === DEV_DEFAULT_PASSWORD || password.length < 12)) {
+    throw new Error('Set SEED_ADMIN_PASSWORD to a unique password of 12+ characters before seeding in production');
+  }
 
   const admin = await prisma.user.upsert({
     where: { email },

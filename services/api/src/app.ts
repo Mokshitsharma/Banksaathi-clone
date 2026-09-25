@@ -16,12 +16,15 @@ import { userRouter } from './modules/users/user.routes';
 
 export function createApp() {
   const app = express();
-  app.set('trust proxy', 1);
+  // Only trust X-Forwarded-For when actually behind a proxy; otherwise clients could spoof their IP to dodge rate limits.
+  app.set('trust proxy', env.TRUST_PROXY);
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   const origins = env.CORS_ORIGINS.split(',').map((o) => o.trim());
   app.use(cors({ origin: origins.includes('*') ? true : origins }));
   app.use(express.json({ limit: '100kb' }));
-  if (env.NODE_ENV !== 'test') app.use(morgan('dev'));
+  // Log paths without query strings so signed file URLs (?sig=...) never land in logs.
+  morgan.token('path', (req) => (req as express.Request).originalUrl.split('?')[0]);
+  if (env.NODE_ENV !== 'test') app.use(morgan(':method :path :status :response-time ms'));
 
   app.get('/health', (_req, res) => res.json({ ok: true }));
 

@@ -22,12 +22,15 @@ declare global {
 interface TokenPayload {
   sub: string;
   role: Role;
+  /** Must match users.token_version; bumping it revokes every outstanding token. */
+  ver: number;
 }
 
-export function signToken(user: AuthUser): string {
-  return jwt.sign({ role: user.role } satisfies Omit<TokenPayload, 'sub'>, env.JWT_SECRET, {
+export function signToken(user: AuthUser & { tokenVersion: number }): string {
+  return jwt.sign({ role: user.role, ver: user.tokenVersion } satisfies Omit<TokenPayload, 'sub'>, env.JWT_SECRET, {
     subject: user.id,
-    expiresIn: env.JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'],
+    algorithm: 'HS256',
+    expiresIn: (user.role === 'admin' ? env.ADMIN_JWT_EXPIRES_IN : env.JWT_EXPIRES_IN) as jwt.SignOptions['expiresIn'],
   });
 }
 
@@ -36,14 +39,15 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
   if (!header?.startsWith('Bearer ')) return next(unauthorized());
   let payload: TokenPayload;
   try {
-    payload = jwt.verify(header.slice(7), env.JWT_SECRET) as TokenPayload;
+    payload = jwt.verify(header.slice(7), env.JWT_SECRET, { algorithms: ['HS256'] }) as TokenPayload;
   } catch {
     return next(unauthorized('Invalid or expired token'));
   }
-  // Re-read the role so a demoted/deleted user loses access immediately.
-  const user = await prisma.user.findUnique({ where: { id: payload.sub }, select: { id: true, role: true } });
+  // Re-read role and token version so demotion, deletion and logout take effect immediately.
+  const user = await prisma.user.findUnique({ where: { id: payload.sub }, select: { id: true, role: true, tokenVersion: true } });
   if (!user) return next(unauthorized('Account no longer exists'));
-  req.user = user;
+  if (user.tokenVersion !== payload.ver) return next(unauthorized('Session has been signed out'));
+  req.user = { id: user.id, role: user.role };
   next();
 }
 

@@ -9,8 +9,9 @@ List endpoints accept `page` and `pageSize` (max 100) and return `{ items, total
 | Method | Path | Body | Notes |
 |---|---|---|---|
 | POST | `/auth/otp/send` | `{ phone }` | 10-digit Indian mobile. 30 s resend cooldown, max 5 per hour. |
-| POST | `/auth/otp/verify` | `{ phone, otp, name?, referralCode? }` | Returns `{ token, user, isNewUser }`. The referral code only applies at signup. |
-| POST | `/auth/admin/login` | `{ email, password }` | Admin accounts only. |
+| POST | `/auth/otp/verify` | `{ phone, otp, name?, referralCode? }` | Returns `{ token, user, isNewUser }`. The referral code only applies at signup. The phone locks for 15 min after 5 wrong guesses. Admin accounts get 403 (they must use email login). |
+| POST | `/auth/admin/login` | `{ email, password }` | Admin accounts only. Locked for 15 min after 10 failed attempts per email. |
+| POST | `/auth/logout` | (auth) | Revokes every token issued to this user (signs out all devices). |
 
 ## Me
 | GET | `/me` | Current user |

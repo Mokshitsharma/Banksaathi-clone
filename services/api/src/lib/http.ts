@@ -28,9 +28,15 @@ export const phoneSchema = z
   .transform((v) => (v.startsWith('+') ? v : v.length === 10 ? `+91${v}` : `+${v}`))
   .refine((v) => /^\+91[6-9]\d{9}$/.test(v), 'Enter a valid 10-digit Indian mobile number');
 
+/**
+ * Largest single amount accepted, in rupees. Money columns are 32-bit INTEGER paise (max ≈ ₹2.14 crore),
+ * so anything above this would overflow the database. Migrate to BIGINT before raising it.
+ */
+export const MAX_AMOUNT_RUPEES = 2_00_00_000; // ₹2 crore
+
 /** Accepts rupees (number) from clients and converts to integer paise. */
 export const rupeesToPaise = z.coerce
   .number()
   .positive()
-  .max(1_00_00_00_000)
+  .max(MAX_AMOUNT_RUPEES, 'Amount cannot exceed ₹2,00,00,000')
   .transform((r) => Math.round(r * 100));

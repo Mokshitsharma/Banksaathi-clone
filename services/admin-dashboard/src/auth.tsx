@@ -20,6 +20,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  /** Explicit sign-out also revokes the token server-side (best effort). */
+  const signOut = () => {
+    if (tokenStore.get()) void api('/auth/logout', { method: 'POST' }).catch(() => undefined).finally(logout);
+    else logout();
+  };
+
   useEffect(() => {
     setUnauthorizedHandler(logout);
     if (!tokenStore.get()) {
@@ -38,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(res.user);
   }
 
-  return <Ctx.Provider value={{ user, ready, login, logout }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={{ user, ready, login, logout: signOut }}>{children}</Ctx.Provider>;
 }
 
 export function useAuth() {

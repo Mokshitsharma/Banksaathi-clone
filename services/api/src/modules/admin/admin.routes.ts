@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../../db/prisma';
 import { badRequest, notFound } from '../../lib/errors';
-import { pagination, parse, rupeesToPaise } from '../../lib/http';
+import { MAX_AMOUNT_RUPEES, pagination, parse, rupeesToPaise } from '../../lib/http';
 import { requireAuth, requireRole } from '../../middleware/auth';
 import { approveCommission, rejectCommission } from '../commissions/commission.service';
 import { approveKyc, kycState, rejectKyc } from '../kyc/kyc.service';
@@ -170,7 +170,7 @@ const ruleInput = z
     productType,
     commissionType: z.enum(['flat', 'percent']),
     /** flat: rupees; percent: percentage (e.g. 1.5 for 1.5%). Converted to paise / basis points. */
-    value: z.coerce.number().positive(),
+    value: z.coerce.number().positive().max(MAX_AMOUNT_RUPEES),
     tier: z.coerce.number().int().min(1).max(10).default(1),
     active: z.boolean().default(true),
     ...offerCopy,
@@ -190,7 +190,7 @@ adminRouter.patch('/commission-rules/:id', async (req, res) => {
   const partial = parse(
     z.object({
       commissionType: z.enum(['flat', 'percent']).optional(),
-      value: z.coerce.number().positive().transform((v) => Math.round(v * 100)).optional(),
+      value: z.coerce.number().positive().max(MAX_AMOUNT_RUPEES).transform((v) => Math.round(v * 100)).optional(),
       tier: z.coerce.number().int().min(1).max(10).optional(),
       active: z.boolean().optional(),
       ...offerCopy,

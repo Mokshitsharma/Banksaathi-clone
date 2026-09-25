@@ -2,7 +2,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useState } from 'react';
 import { Alert, ScrollView, Text, View } from 'react-native';
 import { errorMessage } from '../../api/client';
-import { Me } from '../../api/endpoints';
+import { Auth, Me } from '../../api/endpoints';
 import { KYC_LABEL, kycTone } from '../../components/status';
 import { Badge, Button, Card, ErrorBanner, Field, Row } from '../../components/ui';
 import { API_URL } from '../../config';
@@ -92,7 +92,12 @@ export function ProfileScreen({ navigation }: NativeStackScreenProps<ProfileStac
         onPress={() =>
           Alert.alert('Log out?', 'You will need an OTP to sign in again.', [
             { text: 'Cancel', style: 'cancel' },
-            { text: 'Log out', style: 'destructive', onPress: () => void signOut() },
+            {
+              text: 'Log out',
+              style: 'destructive',
+              // Revoke the token server-side first; sign out locally even if that call fails (e.g. offline).
+              onPress: () => void Auth.logout().catch(() => undefined).finally(() => void signOut()),
+            },
           ])
         }
       />
